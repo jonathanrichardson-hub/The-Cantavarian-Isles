@@ -6,7 +6,7 @@ import { supabase } from './utils/supabase';
 type Recap = {
   id: string;
   title: string;
-  content: string;
+  summary: string;
   created_at: string;
 };
 
@@ -70,7 +70,7 @@ export default function HomePage() {
             </p>
             {/* We use line-clamp to ensure a massive recap doesn't take over the whole home page */}
             <p className="text-[#e8dcc4] whitespace-pre-wrap line-clamp-4">
-              {latestRecap.content}
+              {latestRecap.summary}
             </p>
           </div>
         ) : (
