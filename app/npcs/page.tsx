@@ -11,18 +11,24 @@ type NPC = {
   is_name_revealed: boolean;
   is_info_revealed: boolean;
   is_stats_revealed: boolean;
-  created_at: string; // Added this so we can sort by encounter time!
+  created_at: string;
 };
 
 export default function NPCsPage() {
   const [npcs, setNpcs] = useState<NPC[]>([]);
   const [isDM, setIsDM] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [sortBy, setSortBy] = useState('newest'); // Our new sorting state
+  const [sortBy, setSortBy] = useState('newest');
 
   const [newName, setNewName] = useState('');
   const [newInfo, setNewInfo] = useState('');
   const [newStats, setNewStats] = useState('');
+
+  // NEW: State to track which NPC is currently being edited
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editInfo, setEditInfo] = useState('');
+  const [editStats, setEditStats] = useState('');
 
   useEffect(() => {
     checkUserAndFetchNPCs();
@@ -91,7 +97,6 @@ export default function NPCsPage() {
     }
   };
 
-  // NEW: The Smite Function
   const handleDeleteNPC = async (id: string, name: string) => {
     const confirmDelete = window.confirm(
       `Are you sure you want to permanently delete ${name}?`
@@ -107,7 +112,39 @@ export default function NPCsPage() {
     }
   };
 
-  // NEW: The Sorting Logic
+  // NEW: Start editing an NPC
+  const startEditing = (npc: NPC) => {
+    setEditingId(npc.id);
+    setEditName(npc.name);
+    setEditInfo(npc.info);
+    setEditStats(npc.stat_block);
+  };
+
+  // NEW: Save the edited NPC
+  const saveEdit = async (id: string) => {
+    const { error } = await supabase
+      .from('npcs')
+      .update({
+        name: editName,
+        info: editInfo,
+        stat_block: editStats,
+      })
+      .eq('id', id);
+
+    if (!error) {
+      setNpcs(
+        npcs.map((npc) =>
+          npc.id === id
+            ? { ...npc, name: editName, info: editInfo, stat_block: editStats }
+            : npc
+        )
+      );
+      setEditingId(null); // Close the editor
+    } else {
+      alert('Failed to update NPC.');
+    }
+  };
+
   const sortedNpcs = [...npcs].sort((a, b) => {
     if (sortBy === 'alphabetical') {
       return a.name.localeCompare(b.name);
@@ -117,7 +154,6 @@ export default function NPCsPage() {
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
     }
-    // Default is 'newest'
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
@@ -133,7 +169,6 @@ export default function NPCsPage() {
       <div className="flex flex-col md:flex-row justify-between items-end border-b-2 border-[#4b5e40] pb-2 mb-6">
         <h2 className="text-3xl font-bold text-[#d4af37]">Dramatis Personae</h2>
 
-        {/* NEW: Sorting Dropdown */}
         <div className="mt-4 md:mt-0 flex items-center gap-2">
           <label
             htmlFor="sort"
@@ -191,112 +226,160 @@ export default function NPCsPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {sortedNpcs.map((npc) => (
-          <div
-            key={npc.id}
-            className="bg-[#2c3e2d] border border-[#4b5e40] p-6 rounded-lg shadow-lg relative flex flex-col h-full"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-2xl font-bold text-[#d4af37]">
-                {npc.is_name_revealed || isDM
-                  ? npc.name
-                  : '??? (Unknown Figure)'}
-              </h3>
-              {isDM && (
-                <button
-                  onClick={() =>
-                    toggleVisibility(
-                      npc.id,
-                      'is_name_revealed',
-                      npc.is_name_revealed
-                    )
-                  }
-                  className={`text-xs px-2 py-1 rounded border transition-colors ${
-                    npc.is_name_revealed
-                      ? 'bg-green-900 border-green-500 text-green-200 hover:bg-green-800'
-                      : 'bg-gray-800 border-gray-500 text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  {npc.is_name_revealed ? '👁️ Name' : '🙈 Name'}
-                </button>
-              )}
-            </div>
+        {sortedNpcs.map((npc) => {
+          // NEW: If this specific NPC is being edited, show the Edit Form instead of the regular card
+          if (editingId === npc.id) {
+            return (
+              <div key={npc.id} className="bg-[#2c3e2d] border-2 border-[#d4af37] p-6 rounded-lg shadow-lg flex flex-col h-full space-y-4">
+                <h3 className="text-xl font-bold text-[#d4af37] border-b border-[#4b5e40] pb-2">Editing NPC</h3>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-4 py-2 bg-[#1a241b] border border-[#4b5e40] rounded text-[#e8dcc4] focus:outline-none focus:border-[#d4af37]"
+                />
+                <textarea
+                  value={editInfo}
+                  onChange={(e) => setEditInfo(e.target.value)}
+                  className="w-full px-4 py-2 bg-[#1a241b] border border-[#4b5e40] rounded text-[#e8dcc4] h-32 focus:outline-none focus:border-[#d4af37]"
+                />
+                <textarea
+                  value={editStats}
+                  onChange={(e) => setEditStats(e.target.value)}
+                  className="w-full px-4 py-2 bg-[#1a241b] border border-[#4b5e40] rounded text-[#e8dcc4] h-32 font-mono text-sm focus:outline-none focus:border-[#d4af37]"
+                />
+                <div className="flex justify-end gap-2 mt-auto pt-4">
+                  <button
+                    onClick={() => setEditingId(null)}
+                    className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => saveEdit(npc.id)}
+                    className="px-4 py-2 bg-[#d4af37] text-[#1a241b] font-bold rounded hover:bg-[#e8dcc4] transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            );
+          }
 
-            <div className="mb-4 flex-grow">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[#a3b19b] font-semibold text-sm uppercase tracking-wider">
-                  Lore
-                </span>
+          // Otherwise, show the regular NPC card
+          return (
+            <div
+              key={npc.id}
+              className="bg-[#2c3e2d] border border-[#4b5e40] p-6 rounded-lg shadow-lg relative flex flex-col h-full"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-2xl font-bold text-[#d4af37]">
+                  {npc.is_name_revealed || isDM
+                    ? npc.name
+                    : '??? (Unknown Figure)'}
+                </h3>
                 {isDM && (
                   <button
                     onClick={() =>
                       toggleVisibility(
                         npc.id,
-                        'is_info_revealed',
-                        npc.is_info_revealed
+                        'is_name_revealed',
+                        npc.is_name_revealed
                       )
                     }
                     className={`text-xs px-2 py-1 rounded border transition-colors ${
-                      npc.is_info_revealed
+                      npc.is_name_revealed
                         ? 'bg-green-900 border-green-500 text-green-200 hover:bg-green-800'
                         : 'bg-gray-800 border-gray-500 text-gray-300 hover:bg-gray-700'
                     }`}
                   >
-                    {npc.is_info_revealed ? '👁️ Lore' : '🙈 Lore'}
+                    {npc.is_name_revealed ? '👁️ Name' : '🙈 Name'}
                   </button>
                 )}
               </div>
-              <p className="text-[#e8dcc4] whitespace-pre-wrap bg-[#1a241b] p-3 rounded border border-[#4b5e40]">
-                {npc.is_info_revealed || isDM
-                  ? npc.info || 'No lore recorded.'
-                  : 'You do not know much about this person yet.'}
-              </p>
-            </div>
 
-            {(npc.is_stats_revealed || isDM) && (
-              <div className="mb-4">
+              <div className="mb-4 flex-grow">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-red-400 font-semibold text-sm uppercase tracking-wider">
-                    Combat Stats
+                  <span className="text-[#a3b19b] font-semibold text-sm uppercase tracking-wider">
+                    Lore
                   </span>
                   {isDM && (
                     <button
                       onClick={() =>
                         toggleVisibility(
                           npc.id,
-                          'is_stats_revealed',
-                          npc.is_stats_revealed
+                          'is_info_revealed',
+                          npc.is_info_revealed
                         )
                       }
                       className={`text-xs px-2 py-1 rounded border transition-colors ${
-                        npc.is_stats_revealed
+                        npc.is_info_revealed
                           ? 'bg-green-900 border-green-500 text-green-200 hover:bg-green-800'
                           : 'bg-gray-800 border-gray-500 text-gray-300 hover:bg-gray-700'
                       }`}
                     >
-                      {npc.is_stats_revealed ? '👁️ Stats' : '🙈 Stats'}
+                      {npc.is_info_revealed ? '👁️ Lore' : '🙈 Lore'}
                     </button>
                   )}
                 </div>
-                <pre className="text-red-200 whitespace-pre-wrap bg-black/50 p-3 rounded border border-red-900/50 font-mono text-sm overflow-x-auto">
-                  {npc.stat_block || 'No combat stats recorded.'}
-                </pre>
+                <p className="text-[#e8dcc4] whitespace-pre-wrap bg-[#1a241b] p-3 rounded border border-[#4b5e40]">
+                  {npc.is_info_revealed || isDM
+                    ? npc.info || 'No lore recorded.'
+                    : 'You do not know much about this person yet.'}
+                </p>
               </div>
-            )}
 
-            {/* NEW: The Smite Button (DM Only) */}
-            {isDM && (
-              <div className="mt-4 pt-4 border-t border-[#4b5e40] flex justify-end">
-                <button
-                  onClick={() => handleDeleteNPC(npc.id, npc.name)}
-                  className="text-xs px-3 py-1 bg-red-900/50 border border-red-900 text-red-300 rounded hover:bg-red-800 hover:text-white transition-colors"
-                >
-                  Delete NPC
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+              {(npc.is_stats_revealed || isDM) && (
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-red-400 font-semibold text-sm uppercase tracking-wider">
+                      Combat Stats
+                    </span>
+                    {isDM && (
+                      <button
+                        onClick={() =>
+                          toggleVisibility(
+                            npc.id,
+                            'is_stats_revealed',
+                            npc.is_stats_revealed
+                          )
+                        }
+                        className={`text-xs px-2 py-1 rounded border transition-colors ${
+                          npc.is_stats_revealed
+                            ? 'bg-green-900 border-green-500 text-green-200 hover:bg-green-800'
+                            : 'bg-gray-800 border-gray-500 text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        {npc.is_stats_revealed ? '👁️ Stats' : '🙈 Stats'}
+                      </button>
+                    )}
+                  </div>
+                  <pre className="text-red-200 whitespace-pre-wrap bg-black/50 p-3 rounded border border-red-900/50 font-mono text-sm overflow-x-auto">
+                    {npc.stat_block || 'No combat stats recorded.'}
+                  </pre>
+                </div>
+              )}
+
+              {isDM && (
+                <div className="mt-4 pt-4 border-t border-[#4b5e40] flex justify-end gap-2">
+                  {/* NEW: The Edit Button */}
+                  <button
+                    onClick={() => startEditing(npc)}
+                    className="text-xs px-3 py-1 bg-[#4b5e40]/50 border border-[#4b5e40] text-[#e8dcc4] rounded hover:bg-[#4b5e40] transition-colors"
+                  >
+                    Edit NPC
+                  </button>
+                  <button
+                    onClick={() => handleDeleteNPC(npc.id, npc.name)}
+                    className="text-xs px-3 py-1 bg-red-900/50 border border-red-900 text-red-300 rounded hover:bg-red-800 hover:text-white transition-colors"
+                  >
+                    Delete NPC
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {npcs.length === 0 && (
           <p className="text-[#a3b19b] italic col-span-full text-center mt-8">
