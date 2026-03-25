@@ -1,74 +1,93 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase } from './utils/supabase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false); // New toggle state
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
-
-    if (error) {
-      setMessage(`Error: ${error.message}`);
+    if (isSignUp) {
+      // The Sign-Up Spell
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) {
+        setMessage("Sign Up Failed: " + error.message);
+      } else {
+        setMessage("Account created! Unlocking doors...");
+        window.location.reload(); 
+      }
     } else {
-      setMessage(
-        'A magical missive has been sent! Check your email for the login link.'
-      );
+      // The Log-In Spell
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        setMessage("Access Denied: " + error.message);
+      } else {
+        setMessage("Welcome back! Unlocking doors...");
+        window.location.reload(); 
+      }
     }
+    
     setIsLoading(false);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center pt-10">
-      <div className="bg-[#1a241b] border-2 border-[#d4af37] p-8 rounded-lg shadow-2xl max-w-md w-full">
-        <h2 className="text-3xl font-bold text-[#d4af37] mb-6 text-center border-b border-[#4b5e40] pb-4">
-          Enter the Realm
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <div className="bg-[#1a241b] border-2 border-[#d4af37] p-8 rounded-lg shadow-xl max-w-md w-full">
+        <h2 className="text-3xl font-bold text-[#d4af37] text-center mb-6">
+          {isSignUp ? 'Register for the Campaign' : 'Enter the Tavern'}
         </h2>
-
-        <form onSubmit={handleLogin} className="space-y-6">
+        
+        <form onSubmit={handleAuth} className="space-y-4">
           <div>
-            <label
-              htmlFor="email"
-              className="block text-[#e8dcc4] mb-2 font-semibold"
-            >
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 bg-[#2c3e2d] border border-[#4b5e40] rounded text-[#e8dcc4] focus:outline-none focus:border-[#d4af37] transition-colors"
-              placeholder="player@adventuringparty.com"
+            <label className="block text-[#a3b19b] mb-1">Email Address</label>
+            <input 
+              type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 bg-[#2c3e2d] border border-[#d4af37]/50 rounded text-[#e8dcc4] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 bg-[#d4af37] text-[#1a241b] font-bold rounded hover:bg-[#e8dcc4] transition-colors disabled:opacity-50"
+          <div>
+            <label className="block text-[#a3b19b] mb-1">Password</label>
+            <input 
+              type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 bg-[#2c3e2d] border border-[#d4af37]/50 rounded text-[#e8dcc4] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+            />
+          </div>
+
+          <button 
+            type="submit" disabled={isLoading}
+            className="w-full py-3 bg-[#8b0000] text-[#e8dcc4] font-bold rounded hover:bg-[#660000] transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'Casting sending spell...' : 'Send Magic Link'}
+            {isLoading ? 'Processing...' : (isSignUp ? 'Create Character Account' : 'Unlock Door')}
           </button>
         </form>
 
+        <div className="mt-6 text-center">
+          <button 
+            type="button" 
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-[#a3b19b] hover:text-[#d4af37] text-sm transition-colors underline"
+          >
+            {isSignUp ? 'Already have an account? Log in here.' : 'Need an account? Sign up here.'}
+          </button>
+        </div>
+
         {message && (
-          <div className="mt-6 p-4 border border-[#4b5e40] bg-[#2c3e2d] rounded text-center text-[#e8dcc4]">
-            {message}
-          </div>
+          <p className="mt-4 text-center text-[#d4af37] font-semibold">{message}</p>
         )}
       </div>
     </div>
