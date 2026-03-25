@@ -1,146 +1,94 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { supabase } from './utils/supabase';
 
-export default function HomePage() {
-  const [latestRecap, setLatestRecap] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false); // New toggle state
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    fetchLatestRecap();
-  }, []);
-
-  const fetchLatestRecap = async () => {
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
-    // Fetch only the single most recent PUBLISHED recap
-    const { data } = await supabase
-      .from('recaps')
-      .select('*')
-      .eq('is_published', true)
-      .order('session_date', { ascending: false })
-      .limit(1)
-      .single();
+    setMessage('');
 
-    if (data) setLatestRecap(data);
+    if (isSignUp) {
+      // The Sign-Up Spell
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) {
+        setMessage("Sign Up Failed: " + error.message);
+      } else {
+        setMessage("Account created! Unlocking doors...");
+        window.location.reload(); 
+      }
+    } else {
+      // The Log-In Spell
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        setMessage("Access Denied: " + error.message);
+      } else {
+        setMessage("Welcome back! Unlocking doors...");
+        window.location.reload(); 
+      }
+    }
+    
     setIsLoading(false);
   };
 
   return (
-    <div className="space-y-12">
-      {/* Hero Section */}
-      <div className="text-center space-y-4 py-12 border-b-2 border-[#4b5e40]">
-        <h1 className="text-5xl md:text-7xl font-extrabold text-[#d4af37] tracking-widest uppercase drop-shadow-lg">
-          The Cantavarian Isles
-        </h1>
-        <p className="text-xl text-[#a3b19b] italic max-w-2xl mx-auto">
-          "Where the tides hold secrets, and every map edge hides a monster."
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Quick Links */}
-        <div className="lg:col-span-1 space-y-6">
-          <h2 className="text-2xl font-bold text-[#e8dcc4] border-b border-[#4b5e40] pb-2">
-            Explore the Realm
-          </h2>
-          <div className="grid grid-cols-1 gap-4">
-            <Link
-              href="/pcs"
-              className="p-4 bg-[#1a241b] border border-[#4b5e40] rounded-lg hover:border-[#d4af37] hover:bg-[#2c3e2d] transition-all group flex items-center justify-between"
-            >
-              <div>
-                <h3 className="text-lg font-bold text-[#d4af37]">The Party</h3>
-                <p className="text-sm text-[#a3b19b]">View the heroes</p>
-              </div>
-              <span className="text-2xl opacity-50 group-hover:opacity-100 transition-opacity">
-                ⚔️
-              </span>
-            </Link>
-
-            <Link
-              href="/maps"
-              className="p-4 bg-[#1a241b] border border-[#4b5e40] rounded-lg hover:border-[#d4af37] hover:bg-[#2c3e2d] transition-all group flex items-center justify-between"
-            >
-              <div>
-                <h3 className="text-lg font-bold text-[#d4af37]">
-                  Cartography
-                </h3>
-                <p className="text-sm text-[#a3b19b]">View the world maps</p>
-              </div>
-              <span className="text-2xl opacity-50 group-hover:opacity-100 transition-opacity">
-                🗺️
-              </span>
-            </Link>
-
-            <Link
-              href="/glossary"
-              className="p-4 bg-[#1a241b] border border-[#4b5e40] rounded-lg hover:border-[#d4af37] hover:bg-[#2c3e2d] transition-all group flex items-center justify-between"
-            >
-              <div>
-                <h3 className="text-lg font-bold text-[#d4af37]">
-                  Grand Glossary
-                </h3>
-                <p className="text-sm text-[#a3b19b]">Search items and lore</p>
-              </div>
-              <span className="text-2xl opacity-50 group-hover:opacity-100 transition-opacity">
-                📖
-              </span>
-            </Link>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <div className="bg-[#1a241b] border-2 border-[#d4af37] p-8 rounded-lg shadow-xl max-w-md w-full">
+        <h2 className="text-3xl font-bold text-[#d4af37] text-center mb-6">
+          {isSignUp ? 'Register for the Campaign' : 'Enter the Tavern'}
+        </h2>
+        
+        <form onSubmit={handleAuth} className="space-y-4">
+          <div>
+            <label className="block text-[#a3b19b] mb-1">Email Address</label>
+            <input 
+              type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 bg-[#2c3e2d] border border-[#d4af37]/50 rounded text-[#e8dcc4] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+            />
           </div>
+
+          <div>
+            <label className="block text-[#a3b19b] mb-1">Password</label>
+            <input 
+              type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 bg-[#2c3e2d] border border-[#d4af37]/50 rounded text-[#e8dcc4] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+            />
+          </div>
+
+          <button 
+            type="submit" disabled={isLoading}
+            className="w-full py-3 bg-[#8b0000] text-[#e8dcc4] font-bold rounded hover:bg-[#660000] transition-colors disabled:opacity-50"
+          >
+            {isLoading ? 'Processing...' : (isSignUp ? 'Create Character Account' : 'Unlock Door')}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <button 
+            type="button" 
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-[#a3b19b] hover:text-[#d4af37] text-sm transition-colors underline"
+          >
+            {isSignUp ? 'Already have an account? Log in here.' : 'Need an account? Sign up here.'}
+          </button>
         </div>
 
-        {/* Right Column: Last Time On... */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-2xl font-bold text-[#e8dcc4] border-b border-[#4b5e40] pb-2">
-            Last Time On...
-          </h2>
-
-          <div className="bg-[#1a241b] border-2 border-[#d4af37] rounded-lg p-6 shadow-2xl relative overflow-hidden">
-            {/* A subtle watermark icon in the background */}
-            <div className="absolute -bottom-10 -right-10 text-[150px] opacity-5 select-none pointer-events-none">
-              🐉
-            </div>
-
-            {isLoading ? (
-              <p className="text-[#a3b19b] italic text-center py-8">
-                Consulting the archives...
-              </p>
-            ) : latestRecap ? (
-              <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-2xl font-bold text-[#d4af37]">
-                    {latestRecap.title}
-                  </h3>
-                  <span className="text-sm text-[#a3b19b] bg-black/40 px-2 py-1 rounded border border-[#4b5e40]">
-                    {latestRecap.session_date}
-                  </span>
-                </div>
-                <p className="text-[#e8dcc4] whitespace-pre-wrap leading-relaxed line-clamp-6">
-                  {latestRecap.summary}
-                </p>
-                <div className="mt-6 pt-4 border-t border-[#4b5e40]/50 text-right">
-                  <Link
-                    href="/recaps"
-                    className="text-[#d4af37] hover:text-[#e8dcc4] text-sm font-bold uppercase tracking-wider transition-colors"
-                  >
-                    Read Full Chronicles →
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 relative z-10">
-                <p className="text-[#a3b19b] italic mb-2">
-                  The campaign has just begun, and the ink is not yet dry.
-                </p>
-                <p className="text-sm text-gray-500">
-                  (The DM has not published any recaps yet!)
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        {message && (
+          <p className="mt-4 text-center text-[#d4af37] font-semibold">{message}</p>
+        )}
       </div>
     </div>
   );
