@@ -46,6 +46,7 @@ export default function NavBar() {
     { name: 'Maps', path: '/maps' },
     { name: 'Recap', path: '/recaps' },
     { name: 'Notes', path: '/notes' },
+    { name: 'Inbox', path: '/inbox' }, // <-- The new Inbox tab has been added here!
     { name: 'Planning', path: '/planning', dmOnly: true },
     { name: 'Glossary', path: '/glossary' },
   ];
