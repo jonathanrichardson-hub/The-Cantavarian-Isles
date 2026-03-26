@@ -6,7 +6,6 @@ import { supabase } from '../utils/supabase';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false); // New toggle state
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -15,30 +14,18 @@ export default function LoginPage() {
     setIsLoading(true);
     setMessage('');
 
-    if (isSignUp) {
-      // The Sign-Up Spell
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (error) {
-        setMessage("Sign Up Failed: " + error.message);
-      } else {
-        setMessage("Account created! Unlocking doors...");
-        window.location.reload(); 
-      }
+    // The Log-In Spell Only
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      setMessage("Access Denied: " + error.message);
     } else {
-      // The Log-In Spell
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) {
-        setMessage("Access Denied: " + error.message);
-      } else {
-        setMessage("Welcome back! Unlocking doors...");
-        window.location.reload(); 
-      }
+      setMessage("Welcome back! Unlocking doors...");
+      // Teleport the user to the Grand Entrance (Home Page) after successful login
+      window.location.href = '/'; 
     }
     
     setIsLoading(false);
@@ -47,9 +34,12 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <div className="bg-[#1a241b] border-2 border-[#d4af37] p-8 rounded-lg shadow-xl max-w-md w-full">
-        <h2 className="text-3xl font-bold text-[#d4af37] text-center mb-6">
-          {isSignUp ? 'Register for the Campaign' : 'Enter the Tavern'}
+        <h2 className="text-3xl font-bold text-[#d4af37] text-center mb-2">
+          Enter the Tavern
         </h2>
+        <p className="text-[#a3b19b] text-center mb-6 italic text-sm border-b border-[#4b5e40] pb-4">
+          Access to the Cantavarian Isles is by DM invitation only.
+        </p>
         
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
@@ -70,21 +60,11 @@ export default function LoginPage() {
 
           <button 
             type="submit" disabled={isLoading}
-            className="w-full py-3 bg-[#8b0000] text-[#e8dcc4] font-bold rounded hover:bg-[#660000] transition-colors disabled:opacity-50"
+            className="w-full py-3 bg-[#8b0000] text-[#e8dcc4] font-bold rounded hover:bg-[#660000] transition-colors disabled:opacity-50 shadow-md"
           >
-            {isLoading ? 'Processing...' : (isSignUp ? 'Create Character Account' : 'Unlock Door')}
+            {isLoading ? 'Processing...' : 'Unlock Door'}
           </button>
         </form>
-
-        <div className="mt-6 text-center">
-          <button 
-            type="button" 
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-[#a3b19b] hover:text-[#d4af37] text-sm transition-colors underline"
-          >
-            {isSignUp ? 'Already have an account? Log in here.' : 'Need an account? Sign up here.'}
-          </button>
-        </div>
 
         {message && (
           <p className="mt-4 text-center text-[#d4af37] font-semibold">{message}</p>
