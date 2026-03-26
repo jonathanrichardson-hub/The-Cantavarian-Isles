@@ -45,12 +45,12 @@ export default function HomePage() {
         <div className="w-32 h-1 bg-[#8b0000] mx-auto mb-8 rounded-full"></div>
         
         <p className="text-xl md:text-2xl text-[#e8dcc4] mb-8 leading-relaxed font-serif">
-          Where the tides hold secrets, and the depths hunger for the unwary. 
+          Where the tides hold secrets, and the depths hunger for the weary. 
           Gather your party, check your inventory, and prepare for the journey ahead.
         </p>
 
         <p className="text-[#a3b19b] italic">
-          "The sea does not forgive, but it does not forget."
+          "Death will one day claim us all, until then: we adventure."
         </p>
       </div>
 
